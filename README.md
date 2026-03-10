@@ -5,10 +5,10 @@
 **Production-grade Telegram membership management with Stripe billing**
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v0.1.0--dev-orange.svg)](CHANGELOG.md)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
+[![Version](https://img.shields.io/badge/version-v0.5.0-brightgreen.svg)](https://github.com/simasjankun/telegram-membership-bot/releases)
+[![Node.js](https://img.shields.io/badge/node-24-brightgreen.svg)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/typescript-5.x-blue.svg)](https://www.typescriptlang.org)
-[![NestJS](https://img.shields.io/badge/nestjs-10.x-red.svg)](https://nestjs.com)
+[![NestJS](https://img.shields.io/badge/nestjs-11.x-red.svg)](https://nestjs.com)
 
 </div>
 
@@ -18,7 +18,7 @@
 
 A self-contained backend system that automates access control for paid Telegram communities. One bot manages a private **content channel** and a private **discussion group** — granting or revoking access based on real-time Stripe subscription state.
 
-Built for reliability from day one: idempotent webhook handling, a proper membership state machine, grace periods, automated reminders, and safe member removal.
+Built for reliability from day one: idempotent webhook handling, a proper membership state machine, grace periods, automated reminders, safe member removal, and Lithuanian/English localisation.
 
 ---
 
@@ -28,9 +28,9 @@ Built for reliability from day one: idempotent webhook handling, a proper member
 ┌─────────────────────────────────────────────────────────────────┐
 │                         User Journey                            │
 │                                                                 │
-│  User → /start → Stripe Checkout → Webhook → Access Granted    │
+│  /start → Stripe Checkout → Webhook → join_request → Access    │
 │                                                                 │
-│         Renewal fail → Grace Period → Reminder → Removal       │
+│  Payment fail → Grace Period → Reminder → Auto-removal         │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
@@ -39,13 +39,13 @@ Built for reliability from day one: idempotent webhook handling, a proper member
 │  /start          │◄───│  Stripe Checkout │───►│  State Machine   │
 │  join_request    │    │  Stripe Billing  │    │  Access Policy   │
 │  member removal  │    │  Webhooks        │    │  Grace Periods   │
-│  DM reminders    │    │  Customer Portal │    │  Entitlements    │
+│  DM notifications│    │  Idempotency     │    │  Tier entitlement│
 └──────────────────┘    └──────────────────┘    └──────────────────┘
          │                       │                       │
          └───────────────────────┼───────────────────────┘
                                  │
                     ┌────────────▼────────────┐
-                    │       PostgreSQL         │
+                    │   Supabase PostgreSQL    │
                     │  users · subscriptions  │
                     │  memberships · events   │
                     └─────────────────────────┘
@@ -53,38 +53,51 @@ Built for reliability from day one: idempotent webhook handling, a proper member
 
 ---
 
-## Key Features
+## Implemented Features
 
 **Access Control**
 - Invite links with `creates_join_request=true` — no permanent links floating around
-- `chat_join_request` approval only for members with active subscriptions
-- Automatic removal from channel + group on expiry
-- Safe retry logic — tolerates Telegram API hiccups and already-removed members
+- `chat_join_request` approval only for subscribers with `ACTIVE` status
+- Automatic member removal from channel + group on subscription expiry
+- Ban + unban pattern on removal so users can rejoin after resubscribing
+- `chat_member` / `my_chat_member` tracking in DB
 
 **Billing**
 - Stripe Checkout for new subscriptions
-- Full subscription lifecycle via webhooks (created / updated / deleted / past_due)
-- Idempotent event processing — `stripe_event_id` deduplication prevents double execution
-- Stripe Customer Portal for self-service subscription management
+- Full subscription lifecycle via webhooks (`created` / `updated` / `deleted`)
+- `invoice.payment_succeeded` / `invoice.payment_failed` handling
+- Race condition handling — `checkout.session.completed` fetches subscription directly
+- Idempotent event processing — `stripe_event_id` deduplication
 
 **Membership State Machine**
 
 ```
-inactive → checkout_started → active → past_due → grace_period → canceled
-                                  ↑                                   │
-                                  └───────────── resubscribe ─────────┘
-                                                          ↓
-                                                       blocked
+INACTIVE → CHECKOUT_STARTED → ACTIVE → PAST_DUE → CANCELED
+                                 ↑                     │
+                                 └─── resubscribe ──────┘
+                                              ↓
+                                          BLOCKED
 ```
 
-**Notifications**
-- Templated DM messages for all lifecycle events (v1)
-- Optional Claude Sonnet 4.6 AI concierge for DM support (v2)
+**Grace Period & Auto-removal**
+- Configurable grace period (`GRACE_PERIOD_DAYS`) set on payment failure
+- Cron job (`CRON_SCHEDULE`) checks expired grace periods hourly
+- 24-hour warning DM sent once before removal
+- Removal logged to `telegram_memberships` with `removed_at` timestamp
 
-**Observability**
-- All Telegram and Stripe events stored with full payloads
-- Message logs per user (direction, channel, template)
-- Reconciliation jobs to catch drift between DB and Telegram state
+**Localisation**
+- Lithuanian (`lt`) default, English (`en`) fallback based on Telegram `language_code`
+- All bot messages localised — warm, friendly tone in "Jūs" form for LT
+- Community name configurable via `COMMUNITY_NAME` env var
+- Group welcome message always in Lithuanian
+
+**Notifications (all localised)**
+- Subscription activated with join buttons
+- Payment failed with grace deadline
+- Grace period 24h warning
+- Access removed with resubscribe prompt
+- Subscription canceled
+- Join request approved/declined confirmations
 
 ---
 
@@ -92,14 +105,58 @@ inactive → checkout_started → active → past_due → grace_period → cance
 
 | Layer | Technology |
 |---|---|
-| Runtime | Node.js 20+ |
+| Runtime | Node.js 24 |
 | Language | TypeScript 5 |
-| Framework | NestJS 10 |
-| Database | PostgreSQL (Supabase or managed) |
-| Queue / Jobs | BullMQ + Redis |
+| Framework | NestJS 11 |
+| Database | PostgreSQL via Supabase |
+| ORM | Prisma 6 |
+| Cron / Jobs | `@nestjs/schedule` |
 | Payments | Stripe Billing + Checkout |
-| Messaging | Telegram Bot API |
-| AI (v2) | Claude Sonnet 4.6 |
+| Messaging | Telegram Bot API (via Telegraf) |
+| Hosting (prod) | DigitalOcean droplet + Docker |
+
+---
+
+## Project Structure
+
+```
+src/
+├── common/
+│   ├── bot/
+│   │   ├── bot.module.ts              # Global TelegrafModule wrapper
+│   │   └── telegram.access.service.ts # Invite links, join approval, removal
+│   ├── i18n/
+│   │   ├── i18n.module.ts             # Global i18n module
+│   │   ├── i18n.service.ts            # t() translation helper
+│   │   └── messages.ts                # LT + EN message templates
+│   └── prisma/
+│       ├── prisma.module.ts
+│       └── prisma.service.ts
+├── config/
+│   ├── configuration.ts
+│   └── validation.schema.ts
+├── modules/
+│   ├── health/                        # GET /health
+│   ├── jobs/
+│   │   └── expiry.job.ts              # Grace period + removal cron
+│   ├── membership/
+│   │   └── membership.service.ts      # Stripe event → state machine
+│   ├── notifications/
+│   │   └── notifications.service.ts   # Localised DM templates
+│   ├── stripe/
+│   │   ├── stripe.service.ts          # Stripe client + webhook verification
+│   │   ├── stripe.checkout.service.ts # Checkout session creation
+│   │   └── stripe.webhook.controller.ts
+│   └── telegram/
+│       ├── telegram.service.ts        # /start handler
+│       ├── telegram.update.ts         # Telegraf update handlers
+│       └── telegram.webhook.controller.ts
+├── app.module.ts
+└── main.ts
+prisma/
+├── schema.prisma
+└── migrations/
+```
 
 ---
 
@@ -119,52 +176,31 @@ stripe_customers
 
 subscriptions
   id, user_id → users, stripe_subscription_id (unique)
-  stripe_price_id, status, current_period_start, current_period_end
+  stripe_price_id, status (enum), tier (enum) [v0.6.0]
+  current_period_start, current_period_end
   cancel_at_period_end, grace_until, last_stripe_event_at
   created_at, updated_at
 
 telegram_memberships
   id, user_id → users
   discussion_group_chat_id, content_channel_chat_id
-  group_member_status, channel_member_status
+  group_member_status (enum), channel_member_status (enum)
   last_verified_at, removed_at
 
 billing_events
   id, stripe_event_id (unique), type, payload_json
-  processed_at, status
+  status (enum), processed_at
 
 telegram_events
-  id, update_id (unique), type, payload_json, processed_at
+  id, update_id (unique), type, payload_json
+  status (enum), processed_at
 
 message_logs
   id, user_id → users, direction (inbound/outbound)
   channel, template_key, content, created_at
-
-ai_threads  [v2]
-  id, user_id → users, provider, thread_state_json, last_message_at
 ```
 
 </details>
-
----
-
-## Project Structure
-
-```
-src/
-├── modules/
-│   ├── auth/           # Identity & account linking
-│   ├── telegram/       # Bot, join requests, member sync
-│   ├── stripe/         # Checkout, webhooks, portal
-│   ├── membership/     # State machine, access policy, entitlements
-│   ├── notifications/  # Templated DMs
-│   ├── jobs/           # Reminders, grace period, reconciliation
-│   ├── ai/             # Claude DM concierge [v2]
-│   └── admin/          # Admin overrides, audit logs
-├── common/             # Guards, interceptors, pipes
-├── config/             # Env validation, constants
-└── main.ts
-```
 
 ---
 
@@ -172,85 +208,94 @@ src/
 
 | Version | Scope | Status |
 |---|---|---|
-| `v0.1.0` | NestJS scaffold, DB schema, Telegram bot foundation | planned |
-| `v0.2.0` | Stripe Checkout + webhook pipeline | planned |
-| `v0.3.0` | Channel & group access control + join request flow | planned |
-| `v0.4.0` | Grace periods, reminders, auto-removal | planned |
-| `v0.5.0` | Admin tools, reconciliation jobs | planned |
-| `v1.0.0` | Production-ready MVP | planned |
-| `v1.1.0` | Stripe Customer Portal, manual admin overrides | planned |
-| `v2.0.0` | Claude Sonnet 4.6 AI DM concierge | planned |
+| `v0.1.0` | NestJS scaffold, Prisma schema, Telegram `/start`, DB foundation | ✅ done |
+| `v0.2.0` | Stripe Checkout + full webhook pipeline, membership state machine | ✅ done |
+| `v0.3.0` | Join request flow, channel/group access control, welcome messages | ✅ done |
+| `v0.4.0` | Grace period, 24h reminders, auto-removal cron, configurable intervals | ✅ done |
+| `v0.5.0` | Lithuanian/English i18n, UX polish, community name config | ✅ done |
+| `v0.6.0` | Two membership tiers (Standard / VIP), VIP badge in group | 🔜 next |
+| `v0.7.0` | Admin commands, manual overrides, reconciliation job | 🔜 planned |
+| `v1.0.0` | Production deploy — Docker, Nginx, SSL, DigitalOcean | 🔜 planned |
 
 ---
 
-## API Endpoints
-
-```
-POST  /webhooks/stripe           # Stripe event ingestion
-POST  /webhooks/telegram         # Telegram update ingestion
-
-POST  /billing/create-checkout-session
-POST  /billing/customer-portal
-
-GET   /membership/me
-
-POST  /telegram/join-link/channel
-POST  /telegram/join-link/group
-```
-
----
-
-## Getting Started
-
-> Full setup guide will be added with `v0.1.0`. Below is a quick orientation.
-
-### Prerequisites
-
-- Node.js 20+
-- PostgreSQL
-- Redis (for job queues)
-- Stripe account
-- Telegram Bot Token (`@BotFather`)
-
-### Environment Variables
+## Environment Variables
 
 ```bash
 # App
 NODE_ENV=development
 PORT=3000
+APP_URL=https://your-app.example.com
 
-# Database
-DATABASE_URL=postgresql://...
+# Database (Supabase)
+DATABASE_URL=postgresql://...          # Session pooler — used for migrations
+DATABASE_POOL_URL=postgresql://...     # Session pooler — used at runtime
 
-# Redis
-REDIS_URL=redis://...
+# Redis (reserved for future queue use)
+REDIS_URL=redis://localhost:6379
+
+# Community
+COMMUNITY_NAME=Ieva Voveris Club
+
+# Jobs
+CRON_SCHEDULE=0 * * * *               # every hour; use '* * * * *' for testing
+GRACE_PERIOD_DAYS=2                   # use 0.002 (~3 min) for testing
 
 # Telegram
 TELEGRAM_BOT_TOKEN=
-TELEGRAM_DISCUSSION_GROUP_ID=
+TELEGRAM_DISCUSSION_GROUP_ID=         # negative number e.g. -1001234567890
 TELEGRAM_CONTENT_CHANNEL_ID=
+TELEGRAM_WEBHOOK_SECRET=              # openssl rand -hex 32
 
 # Stripe
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-STRIPE_PRICE_ID=
-
-# AI (optional, v2)
-ANTHROPIC_API_KEY=
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...       # from: stripe listen (dev) or dashboard (prod)
+STRIPE_PRICE_ID=price_...             # v0.5.0 — single tier
+# STANDARD_STRIPE_PRICE_ID=price_... # v0.6.0 — two tiers
+# VIP_STRIPE_PRICE_ID=price_...
 ```
 
-> Never commit `.env` files. Use a secrets manager in production.
+> Never commit `.env` files. See `.env.example` for a full template.
 
 ---
 
-## Security Considerations
+## Local Development
 
-- Stripe webhook signature verification on every request
-- Identity bound to `telegram_user_id`, never username
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Start Redis (requires OrbStack or Docker)
+docker run -d -p 6379:6379 redis:alpine
+
+# 3. Start ngrok tunnel
+ngrok http 3000
+
+# 4. Update APP_URL in .env with ngrok URL
+
+# 5. Start Stripe CLI webhook forwarding
+stripe login
+stripe listen --forward-to localhost:3000/webhooks/stripe
+
+# 6. Run DB migrations
+npm run db:migrate:dev
+
+# 7. Start app
+npm run start:dev
+```
+
+---
+
+## Security
+
+- Stripe webhook signature verified on every request (`stripe-signature` header)
+- Telegram webhook validated via `x-telegram-bot-api-secret-token`
+- Identity bound to `telegram_user_id` — never username
 - `stripe_event_id` deduplication — idempotent by design
 - Telegram `update_id` deduplication
-- Rate limiting on all user-facing endpoints
 - No persistent invite links — join request flow only
+- Ban + unban on removal (not permanent ban)
+- All secrets in env — never in source code
 
 ---
 
