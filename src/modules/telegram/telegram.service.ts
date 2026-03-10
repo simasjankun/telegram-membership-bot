@@ -3,6 +3,7 @@ import { Context, Markup } from 'telegraf';
 import { SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StripeCheckoutService } from '../stripe/stripe.checkout.service';
+import { TelegramAccessService } from '../../common/bot/telegram.access.service';
 
 @Injectable()
 export class TelegramService {
@@ -11,6 +12,7 @@ export class TelegramService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly checkout: StripeCheckoutService,
+    private readonly telegramAccess: TelegramAccessService,
   ) {}
 
   async handleStart(ctx: Context, startParam?: string): Promise<void> {
@@ -32,7 +34,14 @@ export class TelegramService {
     }
 
     if (subscription?.status === SubscriptionStatus.ACTIVE) {
-      await ctx.reply(`Your subscription is active. Welcome back!`);
+      const { channel, group } = this.telegramAccess.getInviteLinks();
+      await ctx.reply(
+        `Your subscription is active. Use the buttons below to join:`,
+        Markup.inlineKeyboard([
+          [Markup.button.url('Content Channel', channel)],
+          [Markup.button.url('Discussion Group', group)],
+        ]),
+      );
       return;
     }
 
@@ -44,7 +53,6 @@ export class TelegramService {
     }
 
     const checkoutUrl = await this.checkout.createCheckoutUrl(user);
-
     await ctx.reply(
       `Welcome! Subscribe to get access to the private channel and discussion group.`,
       Markup.inlineKeyboard([Markup.button.url('Subscribe', checkoutUrl)]),
