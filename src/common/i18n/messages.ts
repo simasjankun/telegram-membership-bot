@@ -88,6 +88,31 @@ export const messages: Record<'lt' | 'en', Record<string, MsgFn>> = {
 
     'group.welcome': ({ displayName, communityName }) =>
       `Sveiki atvykę, ${displayName}! 👋 Džiaugiamės, kad prisijungėte prie *${communityName}* bendruomenės! 🌟`,
+
+    'admin.menu': () => `🛠 *Admin Panel*\n\nPasirinkite veiksmą:`,
+    'admin.btn.members': () => `👥 Narių sąrašas`,
+    'admin.btn.stats': () => `📊 Statistika`,
+    'admin.btn.grant': () => `✅ Suteikti prieigą`,
+    'admin.btn.back_menu': () => `↩ Meniu`,
+    'admin.btn.back_members': () => `↩ Narių sąrašas`,
+    'admin.btn.prev': () => `◀ Atgal`,
+    'admin.btn.next': () => `Pirmyn ▶`,
+    'admin.btn.revoke': () => `❌ Panaikinti prieigą`,
+    'admin.btn.confirm_revoke': () => `✅ Taip, panaikinti`,
+    'admin.btn.back_member': () => `↩ Atgal`,
+
+    'admin.members.title': ({ count, from, to }: any) =>
+      `👥 *Aktyvūs nariai* (${from}–${to} iš ${count})`,
+    'admin.member.not_found': () => `❌ Vartotojas nerastas.`,
+    'admin.revoke.confirm': (v) => `❌ Ar tikrai norite panaikinti prieigą?\n\n👤 *${(v as any).name}* (\`${(v as any).userId}\`)`,
+    'admin.revoke.done': () => `✅ Prieiga panaikinta.`,
+    'admin.grant.prompt': () => `✅ *Suteikti prieigą*\n\nĮveskite nario Telegram ID:\n_(atšaukti: /admin)_`,
+    'admin.grant.done': (v) => `✅ Prieiga suteikta vartotojui \`${(v as any).userId}\`.`,
+    'admin.grant.not_found': (v) => `❌ Vartotojas \`${(v as any).userId}\` nerastas. Ar jis jau rašė /start botui?`,
+    'admin.grant.dm': ({ communityName }) => `✅ Jūsų prieiga prie *${communityName}* suteikta administratoriaus.\n\nPrisijunkite mygtukais žemiau:`,
+    'admin.revoke.dm': ({ communityName }) => `😔 Jūsų prieiga prie *${communityName}* buvo panaikinta administratoriaus.\n\nNorėdami vėl prisijungti — rašykite /start.`,
+    'admin.stats.title': ({ communityName }) => `📊 *${communityName} statistika*`,
+    'admin.myid': (v) => `Jūsų Telegram ID: \`${(v as any).id}\``,
   },
 
   en: {
@@ -165,5 +190,30 @@ export const messages: Record<'lt' | 'en', Record<string, MsgFn>> = {
 
     'group.welcome': ({ displayName, communityName }) =>
       `Welcome, ${displayName}! 👋 We're glad you joined the *${communityName}* community! 🌟`,
+
+    'admin.menu': () => `🛠 *Admin Panel*\n\nChoose an action:`,
+    'admin.btn.members': () => `👥 Members list`,
+    'admin.btn.stats': () => `📊 Statistics`,
+    'admin.btn.grant': () => `✅ Grant access`,
+    'admin.btn.back_menu': () => `↩ Menu`,
+    'admin.btn.back_members': () => `↩ Members list`,
+    'admin.btn.prev': () => `◀ Back`,
+    'admin.btn.next': () => `Next ▶`,
+    'admin.btn.revoke': () => `❌ Revoke access`,
+    'admin.btn.confirm_revoke': () => `✅ Yes, revoke`,
+    'admin.btn.back_member': (v) => `↩ Back`,
+
+    'admin.members.title': ({ count, from, to }: any) =>
+      `👥 *Active members* (${from}–${to} of ${count})`,
+    'admin.member.not_found': () => `❌ User not found.`,
+    'admin.revoke.confirm': (v) => `❌ Are you sure you want to revoke access?\n\n👤 *${(v as any).name}* (\`${(v as any).userId}\`)`,
+    'admin.revoke.done': () => `✅ Access revoked.`,
+    'admin.grant.prompt': () => `✅ *Grant access*\n\nEnter the member's Telegram ID:\n_(cancel: /admin)_`,
+    'admin.grant.done': (v) => `✅ Access granted to \`${(v as any).userId}\`.`,
+    'admin.grant.not_found': (v) => `❌ User \`${(v as any).userId}\` not found. Have they sent /start to the bot?`,
+    'admin.grant.dm': ({ communityName }) => `✅ Access to *${communityName}* has been granted by the administrator.\n\nJoin using the buttons below:`,
+    'admin.revoke.dm': ({ communityName }) => `😔 Your access to *${communityName}* has been revoked by the administrator.\n\nTo rejoin, send /start.`,
+    'admin.stats.title': ({ communityName }) => `📊 *${communityName} statistics*`,
+    'admin.myid': (v) => `Your Telegram ID: \`${(v as any).id}\``,
   },
 };
