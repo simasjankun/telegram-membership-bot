@@ -13,8 +13,7 @@ export class TelegramUpdateHandler {
 
   @Start()
   async onStart(ctx: Context): Promise<void> {
-    const startParam = (ctx as Context & { startPayload?: string }).startPayload;
-    await this.telegramService.handleStart(ctx, startParam);
+    await this.telegramService.handleStart(ctx);
   }
 
   @On('chat_join_request')

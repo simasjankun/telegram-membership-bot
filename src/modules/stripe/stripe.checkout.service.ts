@@ -34,7 +34,7 @@ export class StripeCheckoutService implements OnModuleInit {
       metadata: {
         telegram_user_id: user.telegramUserId.toString(),
       },
-      success_url: `https://t.me/${this.botUsername}?start=payment_success`,
+      success_url: `https://t.me/${this.botUsername}`,
       cancel_url: `https://t.me/${this.botUsername}`,
     });
 

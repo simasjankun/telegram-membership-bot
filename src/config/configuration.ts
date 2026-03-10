@@ -11,6 +11,7 @@ export default () => ({
   redis: {
     url: process.env.REDIS_URL ?? 'redis://localhost:6379',
   },
+  communityName: process.env.COMMUNITY_NAME ?? 'Club',
   jobs: {
     cronSchedule: process.env.CRON_SCHEDULE ?? '0 * * * *',
     gracePeriodDays: parseFloat(process.env.GRACE_PERIOD_DAYS ?? '2'),

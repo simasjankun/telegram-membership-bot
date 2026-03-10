@@ -4,6 +4,7 @@ import { SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StripeCheckoutService } from '../stripe/stripe.checkout.service';
 import { TelegramAccessService } from '../../common/bot/telegram.access.service';
+import { I18nService } from '../../common/i18n/i18n.service';
 
 @Injectable()
 export class TelegramService {
@@ -13,53 +14,54 @@ export class TelegramService {
     private readonly prisma: PrismaService,
     private readonly checkout: StripeCheckoutService,
     private readonly telegramAccess: TelegramAccessService,
+    private readonly i18n: I18nService,
   ) {}
 
-  async handleStart(ctx: Context, startParam?: string): Promise<void> {
+  async handleStart(ctx: Context): Promise<void> {
     const from = ctx.from;
     if (!from) return;
 
-    this.logger.log(`/start from user ${from.id} (param: ${startParam ?? 'none'})`);
+    this.logger.log(`/start from user ${from.id}`);
 
     const user = await this.upsertUser(from);
+    const lang = user.languageCode;
+    const { channel, group } = this.telegramAccess.getInviteLinks();
+
     const subscription = await this.prisma.subscription.findUnique({
       where: { userId: user.id },
     });
 
     if (subscription?.status === SubscriptionStatus.ACTIVE) {
-      const { channel, group } = this.telegramAccess.getInviteLinks();
-      const text =
-        startParam === 'payment_success'
-          ? `Payment confirmed! Your subscription is active.\n\nJoin the community using the buttons below:`
-          : `Your subscription is active. Use the buttons below to join:`;
       await ctx.reply(
-        text,
-        Markup.inlineKeyboard([
-          [Markup.button.url('Content Channel', channel)],
-          [Markup.button.url('Discussion Group', group)],
-        ]),
-      );
-      return;
-    }
-
-    if (startParam === 'payment_success') {
-      await ctx.reply(
-        `Payment received! Your subscription is being activated.\n\nYou'll get a confirmation message shortly.`,
+        this.i18n.t('start.active', lang, { firstName: from.first_name }),
+        {
+          parse_mode: 'Markdown',
+          ...Markup.inlineKeyboard([
+            [Markup.button.url(this.i18n.t('button.channel', lang), channel)],
+            [Markup.button.url(this.i18n.t('button.group', lang), group)],
+          ]),
+        },
       );
       return;
     }
 
     if (subscription?.status === SubscriptionStatus.PAST_DUE) {
       await ctx.reply(
-        `Your payment is past due. Please update your billing details to keep your access.`,
+        this.i18n.t('start.pastDue', lang, { firstName: from.first_name }),
+        { parse_mode: 'Markdown' },
       );
       return;
     }
 
     const checkoutUrl = await this.checkout.createCheckoutUrl(user);
     await ctx.reply(
-      `Welcome! Subscribe to get access to the private channel and discussion group.`,
-      Markup.inlineKeyboard([Markup.button.url('Subscribe', checkoutUrl)]),
+      this.i18n.t('start.new', lang, { firstName: from.first_name }),
+      {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.url(this.i18n.t('button.subscribe', lang), checkoutUrl)],
+        ]),
+      },
     );
   }
 
