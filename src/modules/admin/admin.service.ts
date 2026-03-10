@@ -8,6 +8,7 @@ import { I18nService } from '../../common/i18n/i18n.service';
 
 const PAGE_SIZE = 8;
 const grantPending = new Set<number>();
+const grantTierPending = new Map<number, string>(); // adminId → targetTelegramUserId
 
 @Injectable()
 export class AdminService {
@@ -29,6 +30,14 @@ export class AdminService {
 
   isAwaitingGrantId(telegramUserId: number): boolean {
     return grantPending.has(telegramUserId);
+  }
+
+  isAwaitingGrantTier(telegramUserId: number): boolean {
+    return grantTierPending.has(telegramUserId);
+  }
+
+  getGrantTierTarget(telegramUserId: number): string | undefined {
+    return grantTierPending.get(telegramUserId);
   }
 
   private async getLang(ctx: Context): Promise<string | null> {
@@ -217,10 +226,32 @@ export class AdminService {
       return;
     }
 
+    grantTierPending.set(ctx.from!.id, telegramUserId);
+
+    const name = [user.firstName, user.lastName].filter(Boolean).join(' ') || telegramUserId;
+    await ctx.reply(
+      `👤 *${name}*\n\nPasirinkite paketą:`,
+      {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('🌿 Inner Light', `admin:grant_tier:${telegramUserId}:STANDARD`)],
+          [Markup.button.callback('🌸 Inner Light Plus', `admin:grant_tier:${telegramUserId}:VIP`)],
+        ]),
+      },
+    );
+  }
+
+  async executeGrantWithTier(ctx: Context, telegramUserId: string, tier: SubscriptionTier): Promise<void> {
+    const lang = await this.getLang(ctx);
+    grantTierPending.delete(ctx.from!.id);
+
+    const user = await this.prisma.user.findUnique({ where: { telegramUserId: BigInt(telegramUserId) } });
+    if (!user) return;
+
     await this.prisma.subscription.upsert({
       where: { userId: user.id },
-      update: { status: SubscriptionStatus.ACTIVE, graceUntil: null, lastStripeEventAt: new Date() },
-      create: { userId: user.id, status: SubscriptionStatus.ACTIVE, tier: SubscriptionTier.STANDARD, lastStripeEventAt: new Date() },
+      update: { status: SubscriptionStatus.ACTIVE, tier, graceUntil: null, lastStripeEventAt: new Date() },
+      create: { userId: user.id, status: SubscriptionStatus.ACTIVE, tier, lastStripeEventAt: new Date() },
     });
 
     const { channel, group } = this.telegramAccess.getInviteLinks();
@@ -234,8 +265,12 @@ export class AdminService {
       },
     });
 
-    await ctx.reply(this.t('admin.grant.done', lang, { userId: telegramUserId } as any), { parse_mode: 'Markdown' });
-    this.logger.log(`Admin granted access to user ${telegramUserId}`);
+    const tierLabel = tier === SubscriptionTier.VIP ? 'Inner Light Plus' : 'Inner Light';
+    await (ctx as any).editMessageText(
+      this.t('admin.grant.done', lang, { userId: telegramUserId } as any) + ` (${tierLabel})`,
+      { parse_mode: 'Markdown' },
+    );
+    this.logger.log(`Admin granted ${tier} access to user ${telegramUserId}`);
   }
 
   // ─── Stats ────────────────────────────────────────────────────────────────

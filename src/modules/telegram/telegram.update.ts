@@ -90,6 +90,16 @@ export class TelegramUpdateHandler {
     await this.adminService.startGrantFlow(ctx);
   }
 
+  @Action(/^admin:grant_tier:(\d+):(STANDARD|VIP)$/)
+  async onAdminGrantTier(ctx: Context): Promise<void> {
+    if (!this.adminService.isAdmin(ctx.from!.id)) return;
+    try { await (ctx as any).answerCbQuery(); } catch { /* ignore */ }
+    const match = (ctx as any).match as RegExpMatchArray;
+    const { SubscriptionTier } = await import('@prisma/client');
+    const tier = match[2] === 'VIP' ? SubscriptionTier.VIP : SubscriptionTier.STANDARD;
+    await this.adminService.executeGrantWithTier(ctx, match[1], tier);
+  }
+
   // ─── Message handler — catches grant access ID input ─────────────────────
 
   @On('message')
