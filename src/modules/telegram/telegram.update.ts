@@ -13,50 +13,97 @@ export class TelegramUpdateHandler {
     private readonly adminService: AdminService,
   ) {}
 
+  // ─── Public commands ──────────────────────────────────────────────────────
+
   @Start()
   async onStart(ctx: Context): Promise<void> {
     await this.telegramService.handleStart(ctx);
   }
-
-  @Action(/^tier:(.+)$/)
-  async onTierSelected(ctx: Context): Promise<void> {
-    await this.telegramService.handleTierSelected(ctx);
-  }
-
-  // ─── Public command ───────────────────────────────────────────────────────
 
   @Command('myid')
   async onMyId(ctx: Context): Promise<void> {
     await this.adminService.handleMyId(ctx);
   }
 
-  // ─── Admin commands (ignored if sender is not in ADMIN_TELEGRAM_IDS) ─────
-
-  @Command('checkuser')
-  async onCheckUser(ctx: Context): Promise<void> {
+  @Command('admin')
+  async onAdmin(ctx: Context): Promise<void> {
     if (!this.adminService.isAdmin(ctx.from!.id)) return;
-    const args = (ctx.message as any)?.text?.split(' ').slice(1).join(' ') ?? '';
-    await this.adminService.handleCheckUser(ctx, args);
+    await this.adminService.showMainMenu(ctx);
   }
 
-  @Command('grantaccess')
-  async onGrantAccess(ctx: Context): Promise<void> {
-    if (!this.adminService.isAdmin(ctx.from!.id)) return;
-    const args = (ctx.message as any)?.text?.split(' ').slice(1).join(' ') ?? '';
-    await this.adminService.handleGrantAccess(ctx, args);
+  // ─── Tier selection ───────────────────────────────────────────────────────
+
+  @Action(/^tier:(.+)$/)
+  async onTierSelected(ctx: Context): Promise<void> {
+    await this.telegramService.handleTierSelected(ctx);
   }
 
-  @Command('revokeaccess')
-  async onRevokeAccess(ctx: Context): Promise<void> {
+  // ─── Admin menu callbacks ─────────────────────────────────────────────────
+
+  @Action('admin:menu')
+  async onAdminMenu(ctx: Context): Promise<void> {
     if (!this.adminService.isAdmin(ctx.from!.id)) return;
-    const args = (ctx.message as any)?.text?.split(' ').slice(1).join(' ') ?? '';
-    await this.adminService.handleRevokeAccess(ctx, args);
+    try { await (ctx as any).answerCbQuery(); } catch { /* ignore */ }
+    await this.adminService.showMainMenu(ctx, true);
   }
 
-  @Command('stats')
-  async onStats(ctx: Context): Promise<void> {
+  @Action(/^admin:members:(\d+)$/)
+  async onAdminMembers(ctx: Context): Promise<void> {
     if (!this.adminService.isAdmin(ctx.from!.id)) return;
-    await this.adminService.handleStats(ctx);
+    try { await (ctx as any).answerCbQuery(); } catch { /* ignore */ }
+    const page = parseInt((ctx as any).match[1]);
+    await this.adminService.showMembersList(ctx, page);
+  }
+
+  @Action(/^admin:member:(.+)$/)
+  async onAdminMember(ctx: Context): Promise<void> {
+    if (!this.adminService.isAdmin(ctx.from!.id)) return;
+    try { await (ctx as any).answerCbQuery(); } catch { /* ignore */ }
+    await this.adminService.showMember(ctx, (ctx as any).match[1]);
+  }
+
+  @Action(/^admin:revoke:(.+)$/)
+  async onAdminRevoke(ctx: Context): Promise<void> {
+    if (!this.adminService.isAdmin(ctx.from!.id)) return;
+    try { await (ctx as any).answerCbQuery(); } catch { /* ignore */ }
+    await this.adminService.confirmRevoke(ctx, (ctx as any).match[1]);
+  }
+
+  @Action(/^admin:revoke_confirm:(.+)$/)
+  async onAdminRevokeConfirm(ctx: Context): Promise<void> {
+    if (!this.adminService.isAdmin(ctx.from!.id)) return;
+    try { await (ctx as any).answerCbQuery(); } catch { /* ignore */ }
+    await this.adminService.executeRevoke(ctx, (ctx as any).match[1]);
+  }
+
+  @Action('admin:stats')
+  async onAdminStats(ctx: Context): Promise<void> {
+    if (!this.adminService.isAdmin(ctx.from!.id)) return;
+    try { await (ctx as any).answerCbQuery(); } catch { /* ignore */ }
+    await this.adminService.showStats(ctx);
+  }
+
+  @Action('admin:grant')
+  async onAdminGrant(ctx: Context): Promise<void> {
+    if (!this.adminService.isAdmin(ctx.from!.id)) return;
+    try { await (ctx as any).answerCbQuery(); } catch { /* ignore */ }
+    await this.adminService.startGrantFlow(ctx);
+  }
+
+  // ─── Message handler — catches grant access ID input ─────────────────────
+
+  @On('message')
+  async onMessage(ctx: Context): Promise<void> {
+    const from = ctx.from;
+    if (!from) return;
+
+    if (this.adminService.isAdmin(from.id) && this.adminService.isAwaitingGrantId(from.id)) {
+      const text = (ctx.message as any)?.text?.trim();
+      if (text && /^\d+$/.test(text)) {
+        await this.adminService.executeGrant(ctx, text);
+        return;
+      }
+    }
   }
 
   // ─── Telegram events ──────────────────────────────────────────────────────
