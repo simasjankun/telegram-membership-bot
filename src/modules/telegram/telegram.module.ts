@@ -3,6 +3,7 @@ import { TelegrafModule } from 'nestjs-telegraf';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TelegramUpdate } from './telegram.update';
 import { TelegramService } from './telegram.service';
+import { TelegramWebhookController } from './telegram.webhook.controller';
 
 @Module({
   imports: [
@@ -11,16 +12,11 @@ import { TelegramService } from './telegram.service';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         token: config.get<string>('telegram.botToken')!,
-        launchOptions: {
-          webhook: {
-            domain: config.get<string>('app.url')!,
-            path: '/webhooks/telegram',
-            secretToken: config.get<string>('telegram.webhookSecret')!,
-          },
-        },
+        launchOptions: false,
       }),
     }),
   ],
+  controllers: [TelegramWebhookController],
   providers: [TelegramUpdate, TelegramService],
 })
 export class TelegramModule {}
