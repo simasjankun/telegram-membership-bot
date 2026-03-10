@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_POOL_URL")
+  directUrl = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum SubscriptionStatus {
+  INACTIVE
+  CHECKOUT_STARTED
+  ACTIVE
+  PAST_DUE
+  GRACE_PERIOD
+  CANCELED
+  BLOCKED
+}
+
+enum MemberStatus {
+  UNKNOWN
+  MEMBER
+  LEFT
+  KICKED
+  RESTRICTED
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum BillingEventStatus {
+  PENDING
+  PROCESSED
+  FAILED
+  SKIPPED
+}
+
+enum TelegramEventStatus {
+  PENDING
+  PROCESSED
+  FAILED
+  SKIPPED
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Models
+// ─────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id               String    @id @default(uuid())
+  telegramUserId   BigInt    @unique @map("telegram_user_id")
+  telegramUsername String?   @map("telegram_username")
+  firstName        String?   @map("first_name")
+  lastName         String?   @map("last_name")
+  languageCode     String?   @map("language_code")
+  dmOptIn          Boolean   @default(true) @map("dm_opt_in")
+  dmStartedAt      DateTime? @map("dm_started_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  stripeCustomer     StripeCustomer?
+  subscription       Subscription?
+  telegramMembership TelegramMembership?
+  messageLogs        MessageLog[]
+  telegramEvents     TelegramEvent[]
+
+  @@map("users")
+}
+
+model StripeCustomer {
+  id               String @id @default(uuid())
+  userId           String @unique @map("user_id")
+  stripeCustomerId String @unique @map("stripe_customer_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("stripe_customers")
+}
+
+model Subscription {
+  id                   String             @id @default(uuid())
+  userId               String             @unique @map("user_id")
+  stripeSubscriptionId String?            @unique @map("stripe_subscription_id")
+  stripePriceId        String?            @map("stripe_price_id")
+  status               SubscriptionStatus @default(INACTIVE)
+  currentPeriodStart   DateTime?          @map("current_period_start")
+  currentPeriodEnd     DateTime?          @map("current_period_end")
+  cancelAtPeriodEnd    Boolean            @default(false) @map("cancel_at_period_end")
+  graceUntil           DateTime?          @map("grace_until")
+  lastStripeEventAt    DateTime?          @map("last_stripe_event_at")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model TelegramMembership {
+  id                    String       @id @default(uuid())
+  userId                String       @unique @map("user_id")
+  discussionGroupChatId BigInt?      @map("discussion_group_chat_id")
+  contentChannelChatId  BigInt?      @map("content_channel_chat_id")
+  groupMemberStatus     MemberStatus @default(UNKNOWN) @map("group_member_status")
+  channelMemberStatus   MemberStatus @default(UNKNOWN) @map("channel_member_status")
+  lastVerifiedAt        DateTime?    @map("last_verified_at")
+  removedAt             DateTime?    @map("removed_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("telegram_memberships")
+}
+
+model BillingEvent {
+  id            String             @id @default(uuid())
+  stripeEventId String             @unique @map("stripe_event_id")
+  type          String
+  payloadJson   Json               @map("payload_json")
+  status        BillingEventStatus @default(PENDING)
+  processedAt   DateTime?          @map("processed_at")
+
+  @@map("billing_events")
+}
+
+model TelegramEvent {
+  id          String              @id @default(uuid())
+  updateId    BigInt              @unique @map("update_id")
+  userId      String?             @map("user_id")
+  type        String
+  payloadJson Json                @map("payload_json")
+  status      TelegramEventStatus @default(PENDING)
+  processedAt DateTime?           @map("processed_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("telegram_events")
+}
+
+model MessageLog {
+  id          String           @id @default(uuid())
+  userId      String           @map("user_id")
+  direction   MessageDirection
+  channel     String           @default("telegram_dm")
+  templateKey String?          @map("template_key")
+  content     String
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("message_logs")
+}
