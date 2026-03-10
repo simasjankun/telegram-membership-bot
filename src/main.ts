@@ -17,6 +17,7 @@ async function bootstrap() {
   const bot = app.get<Telegraf>(getBotToken());
   await bot.telegram.setWebhook(`${appUrl}/webhooks/telegram`, {
     secret_token: webhookSecret,
+    allowed_updates: ['message', 'chat_join_request', 'chat_member', 'my_chat_member'],
   });
 
   console.log(`Application running on port ${port}`);
