@@ -12,6 +12,10 @@ export default () => ({
     url: process.env.REDIS_URL ?? 'redis://localhost:6379',
   },
   communityName: process.env.COMMUNITY_NAME ?? 'Club',
+  adminTelegramIds: (process.env.ADMIN_TELEGRAM_IDS ?? '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean),
   standardPackageName: process.env.STANDARD_PACKAGE_NAME ?? 'Standard',
   vipPackageName: process.env.VIP_PACKAGE_NAME ?? 'Plus',
   jobs: {
