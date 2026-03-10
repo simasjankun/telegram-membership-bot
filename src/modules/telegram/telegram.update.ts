@@ -1,6 +1,7 @@
 import { Action, Command, On, Start, Update } from 'nestjs-telegraf';
 import { Context } from 'telegraf';
 import type { Update as TgUpdate } from '@telegraf/types';
+import { SubscriptionTier } from '@prisma/client';
 import { TelegramService } from './telegram.service';
 import { TelegramAccessService } from '../../common/bot/telegram.access.service';
 import { AdminService } from '../admin/admin.service';
@@ -95,7 +96,6 @@ export class TelegramUpdateHandler {
     if (!this.adminService.isAdmin(ctx.from!.id)) return;
     try { await (ctx as any).answerCbQuery(); } catch { /* ignore */ }
     const match = (ctx as any).match as RegExpMatchArray;
-    const { SubscriptionTier } = await import('@prisma/client');
     const tier = match[2] === 'VIP' ? SubscriptionTier.VIP : SubscriptionTier.STANDARD;
     await this.adminService.executeGrantWithTier(ctx, match[1], tier);
   }
