@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { StripeService } from '../stripe/stripe.service';
 
 @Injectable()
 export class MembershipService {
@@ -11,6 +12,7 @@ export class MembershipService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly stripe: StripeService,
   ) {}
 
   async processStripeEvent(event: Stripe.Event): Promise<void> {
@@ -57,6 +59,15 @@ export class MembershipService {
         update: { stripeCustomerId: session.customer as string },
         create: { userId: user.id, stripeCustomerId: session.customer as string },
       });
+    }
+
+    // Fetch and process subscription directly — handles race condition where
+    // customer.subscription.created arrives before checkout.session.completed
+    if (session.subscription) {
+      const subscription = await this.stripe.client.subscriptions.retrieve(
+        session.subscription as string,
+      );
+      await this.handleSubscriptionUpsert(subscription);
     }
 
     this.logger.log(`Checkout completed for user ${user.id}`);
