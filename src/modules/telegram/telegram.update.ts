@@ -8,6 +8,7 @@ export class TelegramUpdate {
 
   @Start()
   async onStart(ctx: Context): Promise<void> {
-    await this.telegramService.handleStart(ctx);
+    const startParam = (ctx as Context & { startPayload?: string }).startPayload;
+    await this.telegramService.handleStart(ctx, startParam);
   }
 }
