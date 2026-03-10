@@ -20,7 +20,7 @@ export const messages: Record<'lt' | 'en', Record<string, MsgFn>> = {
       `🌿 *${standardPackage}* — ${standardPrice}\n` +
       `Savaitinės paskaitos, praktikos, knygos, filmai, kviestiniai svečiai ir palaikymo grupė.\n\n` +
       `🌸 *${vipPackage}* — ${vipPrice}\n` +
-      `Viskas iš ${standardPrice} paketo + asmeninė 1 val. konsultacija per mėnesį ir individualus įsitikinimų perrašymo planas.`,
+      `Viskas iš *${standardPackage}* paketo + asmeninė 1 val. konsultacija per mėnesį ir individualus įsitikinimų perrašymo planas.`,
 
     'start.proceedToCheckout': () =>
       `Puiku! Spauskite žemiau, kad tęstumėte mokėjimą:`,
@@ -97,7 +97,7 @@ export const messages: Record<'lt' | 'en', Record<string, MsgFn>> = {
       `🌿 *${standardPackage}* — ${standardPrice}\n` +
       `Weekly lectures, practices, books, films, guest speakers and support group.\n\n` +
       `🌸 *${vipPackage}* — ${vipPrice}\n` +
-      `Everything in the ${standardPrice} package + 1h personal consultation per month and personalised belief rewriting plan.`,
+      `Everything in the *${standardPackage}* package + 1h personal consultation per month and personalised belief rewriting plan.`,
 
     'start.proceedToCheckout': () =>
       `Great! Press below to proceed to payment:`,
