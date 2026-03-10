@@ -53,7 +53,11 @@ export class TelegramService {
     }
 
     await ctx.reply(
-      this.i18n.t('start.chooseTier', lang, { firstName: from.first_name }),
+      this.i18n.t('start.chooseTier', lang, {
+        firstName: from.first_name,
+        standardPrice: this.checkout.getPriceDisplay(SubscriptionTier.STANDARD),
+        vipPrice: this.checkout.getPriceDisplay(SubscriptionTier.VIP),
+      }),
       {
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard([
