@@ -11,6 +11,10 @@ export default () => ({
   redis: {
     url: process.env.REDIS_URL ?? 'redis://localhost:6379',
   },
+  jobs: {
+    cronSchedule: process.env.CRON_SCHEDULE ?? '0 * * * *',
+    gracePeriodDays: parseFloat(process.env.GRACE_PERIOD_DAYS ?? '2'),
+  },
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN!,
     discussionGroupId: process.env.TELEGRAM_DISCUSSION_GROUP_ID!,

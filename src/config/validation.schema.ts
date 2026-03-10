@@ -15,6 +15,9 @@ export const validationSchema = Joi.object({
   TELEGRAM_CONTENT_CHANNEL_ID: Joi.string().required(),
   TELEGRAM_WEBHOOK_SECRET: Joi.string().required(),
 
+  CRON_SCHEDULE: Joi.string().default('0 * * * *'),
+  GRACE_PERIOD_DAYS: Joi.number().default(2),
+
   STRIPE_SECRET_KEY: Joi.string().required(),
   STRIPE_WEBHOOK_SECRET: Joi.string().required(),
   STRIPE_PRICE_ID: Joi.string().required(),

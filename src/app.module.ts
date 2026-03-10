@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import configuration from './config/configuration';
 import { validationSchema } from './config/validation.schema';
 import { BotModule } from './common/bot/bot.module';
@@ -9,6 +10,7 @@ import { TelegramModule } from './modules/telegram/telegram.module';
 import { StripeModule } from './modules/stripe/stripe.module';
 import { MembershipModule } from './modules/membership/membership.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { JobsModule } from './modules/jobs/jobs.module';
 
 @Module({
   imports: [
@@ -17,6 +19,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
       load: [configuration],
       validationSchema,
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     BotModule,
     HealthModule,
@@ -24,6 +27,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     StripeModule,
     MembershipModule,
     NotificationsModule,
+    JobsModule,
   ],
 })
 export class AppModule {}

@@ -33,9 +33,21 @@ export class NotificationsService {
     await this.logMessage(user.id, 'subscription_activated', content);
   }
 
-  async sendPaymentFailed(user: User): Promise<void> {
-    const content = `We couldn't process your payment. Please update your billing details to keep your access.`;
+  async sendPaymentFailed(user: User, graceUntil: Date): Promise<void> {
+    const date = graceUntil.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
+    const content = `We couldn't process your payment.\n\nYou have until ${date} to update your billing details before losing access.`;
     await this.sendDm(user, 'payment_failed', content);
+  }
+
+  async sendGracePeriodReminder(user: User, graceUntil: Date): Promise<void> {
+    const hours = Math.ceil((graceUntil.getTime() - Date.now()) / 3600000);
+    const content = `Reminder: Your access will be removed in approximately ${hours} hour(s).\n\nUpdate your billing details to keep access.`;
+    await this.sendDm(user, 'grace_period_reminder', content);
+  }
+
+  async sendAccessRemoved(user: User): Promise<void> {
+    const content = `Your access has been removed due to an unpaid subscription.\n\nSend /start to resubscribe and rejoin.`;
+    await this.sendDm(user, 'access_removed', content);
   }
 
   async sendSubscriptionCanceled(user: User): Promise<void> {

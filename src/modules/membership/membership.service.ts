@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import Stripe from 'stripe';
 import { SubscriptionStatus } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { StripeService } from '../stripe/stripe.service';
@@ -13,6 +14,7 @@ export class MembershipService {
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
     private readonly stripe: StripeService,
+    private readonly config: ConfigService,
   ) {}
 
   async processStripeEvent(event: Stripe.Event): Promise<void> {
@@ -170,13 +172,20 @@ export class MembershipService {
     });
     if (!customer) return;
 
+    const gracePeriodDays = this.config.get<number>('jobs.gracePeriodDays') ?? 2;
+    const graceUntil = new Date(Date.now() + gracePeriodDays * 24 * 60 * 60 * 1000);
+
     await this.prisma.subscription.updateMany({
       where: { userId: customer.userId, status: SubscriptionStatus.ACTIVE },
-      data: { status: SubscriptionStatus.PAST_DUE, lastStripeEventAt: new Date() },
+      data: {
+        status: SubscriptionStatus.PAST_DUE,
+        graceUntil,
+        lastStripeEventAt: new Date(),
+      },
     });
 
-    await this.notifications.sendPaymentFailed(customer.user);
-    this.logger.warn(`Payment failed for user ${customer.userId}`);
+    await this.notifications.sendPaymentFailed(customer.user, graceUntil);
+    this.logger.warn(`Payment failed for user ${customer.userId}, grace until ${graceUntil.toISOString()}`);
   }
 
   private mapStripeStatus(status: Stripe.Subscription.Status): SubscriptionStatus {

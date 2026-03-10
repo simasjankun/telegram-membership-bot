@@ -121,6 +121,31 @@ export class TelegramAccessService implements OnModuleInit {
     );
   }
 
+  async removeMember(telegramUserId: bigint): Promise<void> {
+    const userId = Number(telegramUserId);
+    for (const chatId of [this.channelId, this.groupId]) {
+      try {
+        await this.bot.telegram.banChatMember(chatId, userId);
+        await this.bot.telegram.unbanChatMember(chatId, userId);
+        this.logger.log(`Removed user ${userId} from chat ${chatId}`);
+      } catch (err) {
+        // Already not a member — not an error
+        this.logger.debug(`Remove skipped for user ${userId} in ${chatId}: ${(err as Error).message}`);
+      }
+    }
+
+    await this.prisma.telegramMembership.updateMany({
+      where: {
+        user: { telegramUserId },
+      },
+      data: {
+        groupMemberStatus: MemberStatus.KICKED,
+        channelMemberStatus: MemberStatus.KICKED,
+        removedAt: new Date(),
+      },
+    });
+  }
+
   private async upsertMembership(
     userId: string,
     chatId: number,
