@@ -37,7 +37,7 @@ export class AdminService {
       where: { telegramUserId: BigInt(ctx.from.id) },
       select: { languageCode: true },
     });
-    return user?.languageCode ?? null;
+    return user?.languageCode ?? ctx.from.language_code ?? null;
   }
 
   private t(key: string, lang: string | null, vars?: Record<string, unknown>): string {
