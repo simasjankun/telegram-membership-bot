@@ -3,7 +3,7 @@ import { InjectBot } from 'nestjs-telegraf';
 import { ConfigService } from '@nestjs/config';
 import { Telegraf } from 'telegraf';
 import type { Update } from '@telegraf/types';
-import { MemberStatus, SubscriptionStatus } from '@prisma/client';
+import { MemberStatus, SubscriptionStatus, SubscriptionTier } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { I18nService } from '../i18n/i18n.service';
 
@@ -60,7 +60,7 @@ export class TelegramAccessService implements OnModuleInit {
 
     const user = await this.prisma.user.findUnique({
       where: { telegramUserId },
-      include: { subscription: true },
+      include: { subscription: true, telegramMembership: true },
     });
 
     if (!user || user.subscription?.status !== SubscriptionStatus.ACTIVE) {
@@ -99,6 +99,10 @@ export class TelegramAccessService implements OnModuleInit {
         this.i18n.t('group.welcome', 'lt', { displayName }),
         { parse_mode: 'Markdown' },
       );
+
+      if (user.subscription?.tier === SubscriptionTier.VIP) {
+        await this.setVipBadge(chatId, request.from.id);
+      }
     }
 
     this.logger.log(`Approved join request for user ${user.id} in chat ${chatId}`);
@@ -124,6 +128,24 @@ export class TelegramAccessService implements OnModuleInit {
     this.logger.log(
       `Chat member update: user ${user.id} in chat ${chatId} → ${newStatus}`,
     );
+  }
+
+  private async setVipBadge(chatId: number, userId: number): Promise<void> {
+    try {
+      await this.bot.telegram.promoteChatMember(chatId, userId, {
+        can_manage_chat: false,
+        can_change_info: false,
+        can_delete_messages: false,
+        can_invite_users: false,
+        can_restrict_members: false,
+        can_pin_messages: false,
+        can_promote_members: false,
+      });
+      await this.bot.telegram.setChatAdministratorCustomTitle(chatId, userId, '⭐ VIP');
+      this.logger.log(`VIP badge set for user ${userId}`);
+    } catch (err) {
+      this.logger.warn(`Failed to set VIP badge for user ${userId}: ${(err as Error).message}`);
+    }
   }
 
   async removeMember(telegramUserId: bigint): Promise<void> {

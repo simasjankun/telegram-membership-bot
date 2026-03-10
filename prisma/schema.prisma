@@ -12,6 +12,11 @@ datasource db {
 // Enums
 // ─────────────────────────────────────────────────────────────────────────────
 
+enum SubscriptionTier {
+  STANDARD
+  VIP
+}
+
 enum SubscriptionStatus {
   INACTIVE
   CHECKOUT_STARTED
@@ -90,6 +95,7 @@ model Subscription {
   stripeSubscriptionId String?            @unique @map("stripe_subscription_id")
   stripePriceId        String?            @map("stripe_price_id")
   status               SubscriptionStatus @default(INACTIVE)
+  tier                 SubscriptionTier   @default(STANDARD)
   currentPeriodStart   DateTime?          @map("current_period_start")
   currentPeriodEnd     DateTime?          @map("current_period_end")
   cancelAtPeriodEnd    Boolean            @default(false) @map("cancel_at_period_end")

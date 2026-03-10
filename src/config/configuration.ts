@@ -25,6 +25,9 @@ export default () => ({
   stripe: {
     secretKey: process.env.STRIPE_SECRET_KEY!,
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
-    priceId: process.env.STRIPE_PRICE_ID!,
+    standardPriceId: process.env.STANDARD_STRIPE_PRICE_ID!,
+    vipPriceId: process.env.VIP_STRIPE_PRICE_ID!,
+    standardPriceDisplay: process.env.STANDARD_PRICE_DISPLAY ?? '29 €/mėn.',
+    vipPriceDisplay: process.env.VIP_PRICE_DISPLAY ?? '49 €/mėn.',
   },
 });

@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Context, Markup } from 'telegraf';
 import { SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { StripeCheckoutService } from '../stripe/stripe.checkout.service';
+import { StripeCheckoutService, SubscriptionTier } from '../stripe/stripe.checkout.service';
 import { TelegramAccessService } from '../../common/bot/telegram.access.service';
 import { I18nService } from '../../common/i18n/i18n.service';
 
@@ -22,7 +22,6 @@ export class TelegramService {
     if (!from) return;
 
     this.logger.log(`/start from user ${from.id}`);
-
     const user = await this.upsertUser(from);
     const lang = user.languageCode;
     const { channel, group } = this.telegramAccess.getInviteLinks();
@@ -53,13 +52,50 @@ export class TelegramService {
       return;
     }
 
-    const checkoutUrl = await this.checkout.createCheckoutUrl(user);
     await ctx.reply(
-      this.i18n.t('start.new', lang, { firstName: from.first_name }),
+      this.i18n.t('start.chooseTier', lang, { firstName: from.first_name }),
       {
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard([
-          [Markup.button.url(this.i18n.t('button.subscribe', lang), checkoutUrl)],
+          [Markup.button.callback(
+            this.i18n.t('button.standardTier', lang, {
+              standardPrice: this.checkout.getPriceDisplay(SubscriptionTier.STANDARD),
+            }),
+            'tier:standard',
+          )],
+          [Markup.button.callback(
+            this.i18n.t('button.vipTier', lang, {
+              vipPrice: this.checkout.getPriceDisplay(SubscriptionTier.VIP),
+            }),
+            'tier:vip',
+          )],
+        ]),
+      },
+    );
+  }
+
+  async handleTierSelected(ctx: Context): Promise<void> {
+    const from = ctx.from;
+    if (!from) return;
+
+    const callbackData = (ctx as Context & { match?: RegExpMatchArray }).match?.[1];
+    const tier = callbackData === 'vip' ? SubscriptionTier.VIP : SubscriptionTier.STANDARD;
+
+    const user = await this.prisma.user.findUnique({
+      where: { telegramUserId: BigInt(from.id) },
+    });
+    if (!user) return;
+
+    const lang = user.languageCode;
+    await (ctx as Context & { answerCbQuery: () => Promise<void> }).answerCbQuery();
+
+    const checkoutUrl = await this.checkout.createCheckoutUrl(user, tier);
+    await ctx.reply(
+      this.i18n.t('start.proceedToCheckout', lang),
+      {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.url(this.i18n.t('button.checkout', lang), checkoutUrl)],
         ]),
       },
     );
