@@ -77,6 +77,25 @@ export class TelegramAccessService implements OnModuleInit {
 
     await this.bot.telegram.approveChatJoinRequest(chatId, request.from.id);
     await this.upsertMembership(user.id, chatId, MemberStatus.MEMBER);
+
+    const isChannel = chatId === parseInt(this.channelId);
+    const chatLabel = isChannel ? 'Content Channel' : 'Discussion Group';
+
+    await this.bot.telegram.sendMessage(
+      request.from.id.toString(),
+      `You've been approved! You now have access to the ${chatLabel}.`,
+    );
+
+    if (!isChannel) {
+      const displayName = request.from.username
+        ? `@${request.from.username}`
+        : request.from.first_name;
+      await this.bot.telegram.sendMessage(
+        this.groupId,
+        `Welcome ${displayName} to the community!`,
+      );
+    }
+
     this.logger.log(`Approved join request for user ${user.id} in chat ${chatId}`);
   }
 

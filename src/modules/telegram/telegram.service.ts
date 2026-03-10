@@ -26,21 +26,25 @@ export class TelegramService {
       where: { userId: user.id },
     });
 
-    if (startParam === 'payment_success') {
-      await ctx.reply(
-        `Payment received! Your subscription is being activated.\n\nYou'll get a confirmation message shortly.`,
-      );
-      return;
-    }
-
     if (subscription?.status === SubscriptionStatus.ACTIVE) {
       const { channel, group } = this.telegramAccess.getInviteLinks();
+      const text =
+        startParam === 'payment_success'
+          ? `Payment confirmed! Your subscription is active.\n\nJoin the community using the buttons below:`
+          : `Your subscription is active. Use the buttons below to join:`;
       await ctx.reply(
-        `Your subscription is active. Use the buttons below to join:`,
+        text,
         Markup.inlineKeyboard([
           [Markup.button.url('Content Channel', channel)],
           [Markup.button.url('Discussion Group', group)],
         ]),
+      );
+      return;
+    }
+
+    if (startParam === 'payment_success') {
+      await ctx.reply(
+        `Payment received! Your subscription is being activated.\n\nYou'll get a confirmation message shortly.`,
       );
       return;
     }
