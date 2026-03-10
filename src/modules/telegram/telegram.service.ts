@@ -75,11 +75,14 @@ export class TelegramService {
   }
 
   async handleTierSelected(ctx: Context): Promise<void> {
+    // Answer immediately — must happen within 10s or Telegram shows spinner forever
+    try { await (ctx as any).answerCbQuery(); } catch { /* ignore */ }
+
     const from = ctx.from;
     if (!from) return;
 
-    const callbackData = (ctx as Context & { match?: RegExpMatchArray }).match?.[1];
-    const tier = callbackData === 'vip' ? SubscriptionTier.VIP : SubscriptionTier.STANDARD;
+    const match = (ctx as any).match as RegExpMatchArray | undefined;
+    const tier = match?.[1] === 'vip' ? SubscriptionTier.VIP : SubscriptionTier.STANDARD;
 
     const user = await this.prisma.user.findUnique({
       where: { telegramUserId: BigInt(from.id) },
@@ -87,9 +90,8 @@ export class TelegramService {
     if (!user) return;
 
     const lang = user.languageCode;
-    await (ctx as Context & { answerCbQuery: () => Promise<void> }).answerCbQuery();
-
     const checkoutUrl = await this.checkout.createCheckoutUrl(user, tier);
+
     await ctx.reply(
       this.i18n.t('start.proceedToCheckout', lang),
       {

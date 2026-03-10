@@ -132,8 +132,10 @@ export class TelegramAccessService implements OnModuleInit {
 
   private async setVipBadge(chatId: number, userId: number): Promise<void> {
     try {
+      // Telegram requires at least one true permission for promoteChatMember.
+      // can_manage_chat is the least powerful option — allows viewing stats only.
       await this.bot.telegram.promoteChatMember(chatId, userId, {
-        can_manage_chat: false,
+        can_manage_chat: true,
         can_change_info: false,
         can_delete_messages: false,
         can_invite_users: false,
