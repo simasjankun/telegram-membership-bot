@@ -5,6 +5,7 @@ import { Telegraf } from 'telegraf';
 import type { Update } from '@telegraf/types';
 import { MemberStatus, SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { I18nService } from '../i18n/i18n.service';
 
 @Injectable()
 export class TelegramAccessService implements OnModuleInit {
@@ -20,6 +21,7 @@ export class TelegramAccessService implements OnModuleInit {
     @InjectBot() private readonly bot: Telegraf,
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly i18n: I18nService,
   ) {
     this.channelId = this.config.get<string>('telegram.contentChannelId')!;
     this.groupId = this.config.get<string>('telegram.discussionGroupId')!;
@@ -69,7 +71,8 @@ export class TelegramAccessService implements OnModuleInit {
       if (user) {
         await this.bot.telegram.sendMessage(
           request.from.id.toString(),
-          `Your subscription is not active. Please subscribe first.`,
+          this.i18n.t('join.declined', user.languageCode),
+          { parse_mode: 'Markdown' },
         );
       }
       return;
@@ -79,11 +82,12 @@ export class TelegramAccessService implements OnModuleInit {
     await this.upsertMembership(user.id, chatId, MemberStatus.MEMBER);
 
     const isChannel = chatId === parseInt(this.channelId);
-    const chatLabel = isChannel ? 'Content Channel' : 'Discussion Group';
+    const msgKey = isChannel ? 'join.approved.channel' : 'join.approved.group';
 
     await this.bot.telegram.sendMessage(
       request.from.id.toString(),
-      `You've been approved! You now have access to the ${chatLabel}.`,
+      this.i18n.t(msgKey, user.languageCode),
+      { parse_mode: 'Markdown' },
     );
 
     if (!isChannel) {
@@ -92,7 +96,8 @@ export class TelegramAccessService implements OnModuleInit {
         : request.from.first_name;
       await this.bot.telegram.sendMessage(
         this.groupId,
-        `Welcome ${displayName} to the community!`,
+        this.i18n.t('group.welcome', 'lt', { displayName }),
+        { parse_mode: 'Markdown' },
       );
     }
 
