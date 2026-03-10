@@ -1,6 +1,8 @@
 export interface MessageVars {
   firstName?: string;
   communityName?: string;
+  standardPackage?: string;
+  vipPackage?: string;
   date?: string;
   hours?: string;
   displayName?: string;
@@ -12,150 +14,156 @@ type MsgFn = (v: MessageVars) => string;
 
 export const messages: Record<'lt' | 'en', Record<string, MsgFn>> = {
   lt: {
-    'start.chooseTier': ({ firstName, communityName }) =>
+    'start.chooseTier': ({ firstName, standardPackage, vipPackage, standardPrice, vipPrice }) =>
       `Sveiki, ${firstName}! 👋\n\n` +
-      `Pasirinkite narystę *${communityName}*:\n\n` +
-      `📢 Turinio kanalas ir 💬 diskusijų grupė — abiejose narystėse vienodi.\n` +
-      `⭐ *VIP* nariai gauna asmeninį ženklelį diskusijų grupėje.`,
+      `Pasirinkite paketą, kuris šiuo metu geriausiai atitinka Jūsų poreikius 🤍\n\n` +
+      `🌿 *${standardPackage}* — ${standardPrice}\n` +
+      `Savaitinės paskaitos, praktikos, knygos, filmai, kviestiniai svečiai ir palaikymo grupė.\n\n` +
+      `🌸 *${vipPackage}* — ${vipPrice}\n` +
+      `Viskas iš ${standardPrice} paketo + asmeninė 1 val. konsultacija per mėnesį ir individualus įsitikinimų perrašymo planas.`,
 
     'start.proceedToCheckout': () =>
       `Puiku! Spauskite žemiau, kad tęstumėte mokėjimą:`,
 
-    'button.standardTier': ({ standardPrice }) => `Standartinė – ${standardPrice}`,
-    'button.vipTier': ({ vipPrice }) => `⭐ VIP – ${vipPrice}`,
+    'button.standardTier': ({ standardPackage, standardPrice }) =>
+      `🌿 ${standardPackage} – ${standardPrice}`,
+
+    'button.vipTier': ({ vipPackage, vipPrice }) =>
+      `🌸 ${vipPackage} – ${vipPrice}`,
+
     'button.checkout': () => `Apmokėti 💳`,
 
     'start.new': ({ firstName, communityName }) =>
       `Sveiki, ${firstName}! 👋\n\n` +
-      `Džiaugiamės, kad radote mus! Prisijunkite prie *${communityName}* ir gaukite prieigą prie:\n\n` +
-      `📢 *Turinio kanalo* — išskirtiniai įrašai tik nariams\n` +
-      `💬 *Diskusijų grupės* — bendravimas su kitais nariais\n\n` +
-      `Paspauskite mygtuką žemiau ir prisijunkite! 👇`,
+      `Džiaugiamės, kad radote mus! Prisijunkite prie *${communityName}* bendruomenės — erdvės moterims, kurios nori realių vidinių pokyčių.\n\n` +
+      `Pasirinkite paketą žemiau 👇`,
 
-    'start.active': ({ firstName }) =>
+    'start.active': ({ firstName, communityName }) =>
       `Sveiki sugrįžę, ${firstName}! 🌸\n\n` +
-      `Jūsų prenumerata aktyvi. Prisijunkite prie bendruomenės mygtukais žemiau:`,
+      `Jūsų narystė *${communityName}* aktyvi. Prisijunkite prie bendruomenės mygtukais žemiau:`,
 
-    'start.pastDue': ({ firstName }) =>
+    'start.pastDue': ({ firstName, communityName }) =>
       `Sveiki, ${firstName}! ⚠️\n\n` +
-      `Jūsų mokėjimas vėluoja. Atnaujinkite mokėjimo duomenis, kad išlaikytumėte prieigą prie bendruomenės.`,
+      `Jūsų mokėjimas vėluoja. Atnaujinkite mokėjimo duomenis, kad išlaikytumėte prieigą prie *${communityName}*.`,
 
-    'button.subscribe': () => `Prenumeruoti 💳`,
-    'button.channel': () => `📢 Turinio kanalas`,
-    'button.group': () => `💬 Diskusijų grupė`,
+    'button.channel': () => `📢 Inner Light kanalas`,
+    'button.group': () => `💬 Palaikymo grupė`,
 
     'subscription.activated': ({ communityName }) =>
-      `🎉 *Prenumerata aktyvuota!*\n\n` +
-      `Sveiki atvykę į *${communityName}*! Labai džiaugiamės, kad esate su mumis. ❤️\n\n` +
-      `Paspauskite žemiau esančius mygtukus, kad prisijungtumėte:`,
+      `🌟 *Sveiki atvykę į ${communityName}!*\n\n` +
+      `Labai džiaugiamės, kad esate su mumis. ❤️\n\n` +
+      `Prisijunkite prie bendruomenės mygtukais žemiau:`,
 
-    'subscription.canceled': () =>
-      `ℹ️ *Prenumerata atšaukta*\n\n` +
-      `Jūsų prenumerata atšaukta. Prieiga bus panaikinta artimiausiu metu.\n\n` +
+    'subscription.canceled': ({ communityName }) =>
+      `ℹ️ *Narystė atšaukta*\n\n` +
+      `Jūsų narystė *${communityName}* atšaukta. Prieiga bus panaikinta artimiausiu metu.\n\n` +
       `Norėdami vėl prisijungti, bet kada rašykite /start ❤️`,
 
-    'payment.failed': ({ date }) =>
+    'payment.failed': ({ communityName, date }) =>
       `⚠️ *Mokėjimo problema*\n\n` +
-      `Nepavyko apdoroti Jūsų mokėjimo. Turite iki *${date}*, kad atnaujintumėte mokėjimo duomenis ir išlaikytumėte prieigą.\n\n` +
+      `Nepavyko apdoroti Jūsų mokėjimo. Turite iki *${date}*, kad atnaujintumėte mokėjimo duomenis ir išlaikytumėte prieigą prie *${communityName}*.\n\n` +
       `Jei kyla klausimų — susisiekite su mumis.`,
 
-    'payment.gracePeriodReminder': ({ hours, communityName }) =>
+    'payment.gracePeriodReminder': ({ communityName, hours }) =>
       `⏰ *Priminimas*\n\n` +
       `Jūsų prieiga prie *${communityName}* bus panaikinta maždaug po *${hours} val.*\n\n` +
       `Atnaujinkite mokėjimo duomenis, kad išlaikytumėte prieigą.`,
 
     'payment.accessRemoved': ({ communityName }) =>
       `😔 *Prieiga panaikinta*\n\n` +
-      `Jūsų prenumerata neaktyvi, todėl prieiga prie *${communityName}* buvo panaikinta.\n\n` +
+      `Jūsų narystė *${communityName}* nebegalioja, todėl prieiga buvo panaikinta.\n\n` +
       `Norėdami vėl prisijungti — rašykite /start 👇`,
 
-    'join.approved.channel': () =>
+    'join.approved.channel': ({ communityName }) =>
       `✅ *Patvirtinta!*\n\n` +
-      `Jūsų prisijungimas prie turinio kanalo patvirtintas. Malonaus skaitymo! 📖`,
+      `Jūsų prisijungimas prie *${communityName}* kanalo patvirtintas. Malonaus skaitymo! 📖`,
 
-    'join.approved.group': () =>
+    'join.approved.group': ({ communityName }) =>
       `✅ *Patvirtinta!*\n\n` +
-      `Jūsų prisijungimas prie diskusijų grupės patvirtintas. Laukiame Jūsų! 💬`,
+      `Jūsų prisijungimas prie *${communityName}* palaikymo grupės patvirtintas. Laukiame Jūsų! 💬`,
 
-    'join.declined': () =>
+    'join.declined': ({ communityName }) =>
       `❌ *Prieiga negalima*\n\n` +
-      `Jūsų prenumerata šiuo metu neaktyvi. Norėdami prisijungti — rašykite /start botui.`,
+      `Jūsų narystė *${communityName}* šiuo metu neaktyvi. Norėdami prisijungti — rašykite /start botui.`,
 
     'group.welcome': ({ displayName, communityName }) =>
-      `Sveiki atvykę, ${displayName}! 👋 Džiaugiamės, kad prisijungėte prie *${communityName}*! ❤️`,
+      `Sveiki atvykę, ${displayName}! 👋 Džiaugiamės, kad prisijungėte prie *${communityName}* bendruomenės! 🌟`,
   },
 
   en: {
-    'start.chooseTier': ({ firstName, communityName }) =>
+    'start.chooseTier': ({ firstName, standardPackage, vipPackage, standardPrice, vipPrice }) =>
       `Hello, ${firstName}! 👋\n\n` +
-      `Choose your *${communityName}* membership:\n\n` +
-      `📢 Content channel and 💬 discussion group are included in both plans.\n` +
-      `⭐ *VIP* members receive a personal badge in the discussion group.`,
+      `Choose the package that best fits your needs right now 🤍\n\n` +
+      `🌿 *${standardPackage}* — ${standardPrice}\n` +
+      `Weekly lectures, practices, books, films, guest speakers and support group.\n\n` +
+      `🌸 *${vipPackage}* — ${vipPrice}\n` +
+      `Everything in the ${standardPrice} package + 1h personal consultation per month and personalised belief rewriting plan.`,
 
     'start.proceedToCheckout': () =>
       `Great! Press below to proceed to payment:`,
 
-    'button.standardTier': ({ standardPrice }) => `Standard – ${standardPrice}`,
-    'button.vipTier': ({ vipPrice }) => `⭐ VIP – ${vipPrice}`,
+    'button.standardTier': ({ standardPackage, standardPrice }) =>
+      `🌿 ${standardPackage} – ${standardPrice}`,
+
+    'button.vipTier': ({ vipPackage, vipPrice }) =>
+      `🌸 ${vipPackage} – ${vipPrice}`,
+
     'button.checkout': () => `Pay 💳`,
 
     'start.new': ({ firstName, communityName }) =>
       `Hello, ${firstName}! 👋\n\n` +
-      `Welcome to *${communityName}*! Subscribe to get access to:\n\n` +
-      `📢 *Content channel* — exclusive posts for members\n` +
-      `💬 *Discussion group* — connect with the community\n\n` +
-      `Press the button below to subscribe! 👇`,
+      `Welcome! Join *${communityName}* — a space for women who want real inner change.\n\n` +
+      `Choose your package below 👇`,
 
-    'start.active': ({ firstName }) =>
+    'start.active': ({ firstName, communityName }) =>
       `Welcome back, ${firstName}! 🌸\n\n` +
-      `Your subscription is active. Join the community using the buttons below:`,
+      `Your *${communityName}* membership is active. Join the community using the buttons below:`,
 
-    'start.pastDue': ({ firstName }) =>
+    'start.pastDue': ({ firstName, communityName }) =>
       `Hello, ${firstName}! ⚠️\n\n` +
-      `Your payment is past due. Please update your billing details to keep your access.`,
+      `Your payment is past due. Please update your billing details to keep your *${communityName}* access.`,
 
-    'button.subscribe': () => `Subscribe 💳`,
-    'button.channel': () => `📢 Content Channel`,
-    'button.group': () => `💬 Discussion Group`,
+    'button.channel': () => `📢 Inner Light channel`,
+    'button.group': () => `💬 Support group`,
 
     'subscription.activated': ({ communityName }) =>
-      `🎉 *Subscription activated!*\n\n` +
-      `Welcome to *${communityName}*! We're so glad to have you. ❤️\n\n` +
-      `Press the buttons below to join:`,
+      `🌟 *Welcome to ${communityName}!*\n\n` +
+      `We're so glad to have you with us. ❤️\n\n` +
+      `Join the community using the buttons below:`,
 
-    'subscription.canceled': () =>
-      `ℹ️ *Subscription canceled*\n\n` +
-      `Your subscription has been canceled. Your access will be removed shortly.\n\n` +
-      `You can resubscribe anytime by sending /start ❤️`,
+    'subscription.canceled': ({ communityName }) =>
+      `ℹ️ *Membership canceled*\n\n` +
+      `Your *${communityName}* membership has been canceled. Access will be removed shortly.\n\n` +
+      `You can rejoin anytime by sending /start ❤️`,
 
-    'payment.failed': ({ date }) =>
+    'payment.failed': ({ communityName, date }) =>
       `⚠️ *Payment issue*\n\n` +
-      `We couldn't process your payment. You have until *${date}* to update your billing details and keep your access.\n\n` +
+      `We couldn't process your payment. You have until *${date}* to update your billing details and keep your *${communityName}* access.\n\n` +
       `If you have any questions, please contact us.`,
 
-    'payment.gracePeriodReminder': ({ hours, communityName }) =>
+    'payment.gracePeriodReminder': ({ communityName, hours }) =>
       `⏰ *Reminder*\n\n` +
-      `Your access to *${communityName}* will be removed in approximately *${hours} hour(s)*.\n\n` +
+      `Your *${communityName}* access will be removed in approximately *${hours} hour(s)*.\n\n` +
       `Update your billing details to keep your access.`,
 
     'payment.accessRemoved': ({ communityName }) =>
       `😔 *Access removed*\n\n` +
-      `Your subscription is no longer active, so your access to *${communityName}* has been removed.\n\n` +
+      `Your *${communityName}* membership is no longer active and your access has been removed.\n\n` +
       `To rejoin, send /start 👇`,
 
-    'join.approved.channel': () =>
+    'join.approved.channel': ({ communityName }) =>
       `✅ *Approved!*\n\n` +
-      `Your request to join the content channel has been approved. Enjoy! 📖`,
+      `Your request to join the *${communityName}* channel has been approved. Enjoy! 📖`,
 
-    'join.approved.group': () =>
+    'join.approved.group': ({ communityName }) =>
       `✅ *Approved!*\n\n` +
-      `Your request to join the discussion group has been approved. Welcome! 💬`,
+      `Your request to join the *${communityName}* support group has been approved. Welcome! 💬`,
 
-    'join.declined': () =>
+    'join.declined': ({ communityName }) =>
       `❌ *Access unavailable*\n\n` +
-      `Your subscription is not active. Please send /start to subscribe.`,
+      `Your *${communityName}* membership is not active. Please send /start to subscribe.`,
 
     'group.welcome': ({ displayName, communityName }) =>
-      `Welcome, ${displayName}! 👋 We're glad you joined *${communityName}*! ❤️`,
+      `Welcome, ${displayName}! 👋 We're glad you joined the *${communityName}* community! 🌟`,
   },
 };
