@@ -1,4 +1,4 @@
-import { On, Start, Update } from 'nestjs-telegraf';
+import { Action, On, Start, Update } from 'nestjs-telegraf';
 import { Context } from 'telegraf';
 import type { Update as TgUpdate } from '@telegraf/types';
 import { TelegramService } from './telegram.service';
@@ -14,6 +14,11 @@ export class TelegramUpdateHandler {
   @Start()
   async onStart(ctx: Context): Promise<void> {
     await this.telegramService.handleStart(ctx);
+  }
+
+  @Action(/^tier:(.+)$/)
+  async onTierSelected(ctx: Context): Promise<void> {
+    await this.telegramService.handleTierSelected(ctx);
   }
 
   @On('chat_join_request')

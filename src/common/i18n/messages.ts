@@ -4,12 +4,27 @@ export interface MessageVars {
   date?: string;
   hours?: string;
   displayName?: string;
+  standardPrice?: string;
+  vipPrice?: string;
 }
 
 type MsgFn = (v: MessageVars) => string;
 
 export const messages: Record<'lt' | 'en', Record<string, MsgFn>> = {
   lt: {
+    'start.chooseTier': ({ firstName, communityName }) =>
+      `Sveiki, ${firstName}! 👋\n\n` +
+      `Pasirinkite narystę *${communityName}*:\n\n` +
+      `📢 Turinio kanalas ir 💬 diskusijų grupė — abiejose narystėse vienodi.\n` +
+      `⭐ *VIP* nariai gauna asmeninį ženklelį diskusijų grupėje.`,
+
+    'start.proceedToCheckout': () =>
+      `Puiku! Spauskite žemiau, kad tęstumėte mokėjimą:`,
+
+    'button.standardTier': ({ standardPrice }) => `Standartinė – ${standardPrice}`,
+    'button.vipTier': ({ vipPrice }) => `⭐ VIP – ${vipPrice}`,
+    'button.checkout': () => `Apmokėti 💳`,
+
     'start.new': ({ firstName, communityName }) =>
       `Sveiki, ${firstName}! 👋\n\n` +
       `Džiaugiamės, kad radote mus! Prisijunkite prie *${communityName}* ir gaukite prieigą prie:\n\n` +
@@ -71,6 +86,19 @@ export const messages: Record<'lt' | 'en', Record<string, MsgFn>> = {
   },
 
   en: {
+    'start.chooseTier': ({ firstName, communityName }) =>
+      `Hello, ${firstName}! 👋\n\n` +
+      `Choose your *${communityName}* membership:\n\n` +
+      `📢 Content channel and 💬 discussion group are included in both plans.\n` +
+      `⭐ *VIP* members receive a personal badge in the discussion group.`,
+
+    'start.proceedToCheckout': () =>
+      `Great! Press below to proceed to payment:`,
+
+    'button.standardTier': ({ standardPrice }) => `Standard – ${standardPrice}`,
+    'button.vipTier': ({ vipPrice }) => `⭐ VIP – ${vipPrice}`,
+    'button.checkout': () => `Pay 💳`,
+
     'start.new': ({ firstName, communityName }) =>
       `Hello, ${firstName}! 👋\n\n` +
       `Welcome to *${communityName}*! Subscribe to get access to:\n\n` +

@@ -21,5 +21,8 @@ export const validationSchema = Joi.object({
 
   STRIPE_SECRET_KEY: Joi.string().required(),
   STRIPE_WEBHOOK_SECRET: Joi.string().required(),
-  STRIPE_PRICE_ID: Joi.string().required(),
+  STANDARD_STRIPE_PRICE_ID: Joi.string().required(),
+  VIP_STRIPE_PRICE_ID: Joi.string().required(),
+  STANDARD_PRICE_DISPLAY: Joi.string().default('29 €/mėn.'),
+  VIP_PRICE_DISPLAY: Joi.string().default('49 €/mėn.'),
 });

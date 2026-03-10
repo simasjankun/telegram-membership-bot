@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import Stripe from 'stripe';
-import { SubscriptionStatus } from '@prisma/client';
+import { SubscriptionStatus, SubscriptionTier } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -62,6 +62,15 @@ export class MembershipService {
         create: { userId: user.id, stripeCustomerId: session.customer as string },
       });
     }
+
+    const tier =
+      session.metadata?.tier === 'VIP' ? SubscriptionTier.VIP : SubscriptionTier.STANDARD;
+
+    await this.prisma.subscription.upsert({
+      where: { userId: user.id },
+      update: { tier, lastStripeEventAt: new Date() },
+      create: { userId: user.id, tier, status: SubscriptionStatus.CHECKOUT_STARTED, lastStripeEventAt: new Date() },
+    });
 
     // Fetch and process subscription directly — handles race condition where
     // customer.subscription.created arrives before checkout.session.completed
